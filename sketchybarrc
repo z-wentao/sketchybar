@@ -1,0 +1,125 @@
+#!/bin/bash
+
+# 颜色定义
+export BAR_COLOR=0xff000000
+export ITEM_BG_COLOR=0xff1a1a1a
+export ACCENT_COLOR=0xffff9f0a
+export WHITE=0xffffffff
+export GREY=0xff8e8e93
+
+# Bar 设置
+sketchybar --bar \
+  height=32 \
+  blur_radius=30 \
+  position=top \
+  sticky=on \
+  padding_left=10 \
+  padding_right=10 \
+  color=$BAR_COLOR \
+  corner_radius=0 \
+
+# 默认设置 - 重要：必须在添加项目之前设置
+sketchybar --default \
+  padding_left=6 \
+  padding_right=5 \
+  icon.font="SF Symbols:Regular:20.0" \
+  label.font="SF Pro:Regular:18.0" \
+  icon.color=$WHITE \
+  label.color=$WHITE \
+  background.color=$ITEM_BG_COLOR \
+  background.corner_radius=10 \
+  background.height=29
+
+# ===== 左侧项目 =====
+
+# Apple 图标
+sketchybar --add item apple left \
+  --set apple \
+    icon= \
+    icon.font="SF Pro:Black:16.0" \
+    label.drawing=off \
+    click_script="sketchybar -m --set \$NAME popup.drawing=toggle"
+
+# 空间指示器
+for i in {1..10}; do
+  sketchybar --add space space.$i left \
+    --set space.$i \
+      space=$i \
+      icon=$i \
+      icon.padding_left=0 \
+      icon.padding_right=0 \
+      padding_left=10 \
+      padding_right=10 \
+      label.drawing=off \
+      icon.highlight_color=$ACCENT_COLOR \
+      background.drawing=off \
+      script="$HOME/.config/sketchybar/plugins/space.sh" \
+      click_script="yabai -m space --focus $i"
+done
+
+# 将工作区 10 的图标改为 Things 图标（使用勾选标记）
+sketchybar --set space.10 \
+  icon=􀃲 \
+  icon.font="SF Pro:Bold:20.0"
+
+# 订阅空间变化事件
+sketchybar --add event space_change
+for i in {1..10}; do
+  sketchybar --subscribe space.$i space_change \
+                                   space_windows_change \
+                                   mouse.clicked
+done
+
+source "$HOME/.config/sketchybar/items/front_app.sh"
+
+# ===== 右侧项目 =====
+
+
+# 时间日期 - 修复版本
+sketchybar --add item calendar right \
+  --set calendar \
+    update_freq=1 \
+    script="$HOME/.config/sketchybar/plugins/calendar.sh" \
+    click_script="open -a Calendar"
+
+# 电池
+sketchybar --add item battery right \
+  --set battery \
+    update_freq=60 \
+    script="$HOME/.config/sketchybar/plugins/battery.sh"
+
+# Things3 应用快捷方式
+sketchybar --add item things right \
+  --set things \
+    icon=􀃲 \
+    icon.font="SF Pro:Bold:20.0" \
+    icon.color=0xff3a7eeb \
+    label.drawing=off \
+    click_script="yabai -m space --focus 10 && open -a Things3"
+
+# 输入法指示器
+sketchybar --add event input_source_update
+sketchybar --add item input_source right \
+  --set input_source \
+    icon=􀇳 \
+    icon.color=$WHITE \
+    label.font="SF Pro:Bold:13.0" \
+    label.color=$WHITE \
+    label.padding_left=5 \
+    label.padding_right=5 \
+    width=50 \
+    update_freq=1 \
+    script="$HOME/.config/sketchybar/plugins/input_source.sh" \
+    click_script="$HOME/.config/sketchybar/plugins/input_source_toggle.sh" \
+  --subscribe input_source system_woke input_source_update
+
+
+# 初始化更新
+sketchybar --update
+
+
+# 定义插件目录变量
+# export PLUGIN_DIR="$HOME/.config/sketchybar/plugins"
+# source "$HOME/.config/sketchybar/items/system_monitor.sh"
+
+echo "SketchyBar configuration loaded successfully"
