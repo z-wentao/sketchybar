@@ -124,8 +124,254 @@ generate_markdown_report() {
     ' "$TIMER_DATA_FILE"
 
     echo ""
+    echo "## 📅 24小时活动热力图"
+    echo ""
+    echo "| 时间 | 活动分布 (每格=5min) |"
+    echo "|------|---------------------|"
+
+    # 生成24小时热力图
+    # 先获取当前时间（分钟数）
+    CURRENT_MIN=$(date +%H:%M | awk -F: '{print $1 * 60 + $2}')
+
+    # 检测今天的屏幕活动时段（Display on/off events）
+    # 获取今天所有的屏幕开关事件，用空格分隔（而不是换行）
+    DISPLAY_EVENTS=$(pmset -g log | grep "$(date +%Y-%m-%d)" | grep -E "Display is turned on|Display is turned off" | awk '{
+      split($2, t, ":")
+      min = t[1] * 60 + t[2]
+      if ($0 ~ /turned on/) printf "%d:ON ", min
+      else if ($0 ~ /turned off/) printf "%d:OFF ", min
+    }')
+
+    # 将屏幕活动时段信息传递给AWK
+    # 格式：空格分隔的 "分钟数:ON" 或 "分钟数:OFF"
+    awk -F'|' -v current_min="$CURRENT_MIN" -v display_events="$DISPLAY_EVENTS" '
+    BEGIN {
+      # 获取当前时间
+      curr_min = current_min + 0
+
+      # 解析屏幕事件，建立活动时段
+      n_events = split(display_events, events, " ")
+      display_on = 0  # 假设一开始屏幕是关的
+
+      # 为每个5分钟块标记屏幕状态
+      for (i = 0; i < 288; i++) {
+        display_status[i] = 0  # 默认屏幕关闭
+      }
+
+      # 遍历所有屏幕事件
+      for (e = 1; e <= n_events; e++) {
+        split(events[e], parts, ":")
+        event_min = parts[1] + 0
+        event_type = parts[2]
+
+        if (event_type == "ON") {
+          # 从这个时间点开始，屏幕是开着的
+          for (i = int(event_min / 5); i < 288; i++) {
+            display_status[i] = 1
+          }
+        } else if (event_type == "OFF") {
+          # 从这个时间点开始，屏幕是关着的
+          for (i = int(event_min / 5); i < 288; i++) {
+            display_status[i] = 0
+          }
+        }
+      }
+
+      # 初始化所有时间块
+      for (i = 0; i < 288; i++) {
+        time_min = i * 5
+
+        # 未来时间标记为间隙
+        if (time_min > curr_min) {
+          blocks[i] = "⬜"
+        } else if (display_status[i] == 1) {
+          # 过去时间，如果屏幕开着，标记为间隙（有活动）
+          blocks[i] = "⬜"
+        } else {
+          # 过去时间，屏幕关着，标记为离开
+          blocks[i] = "⬛"
+        }
+      }
+
+      first_task_min = 9999
+      last_task_min = 0
+      task_count = 0
+    }
+    {
+      split($1, parts, "-")
+      split(parts[1], start_t, ":")
+      split(parts[2], end_t, ":")
+
+      start_min = start_t[1] * 60 + start_t[2]
+      end_min = end_t[1] * 60 + end_t[2]
+
+      # 记录第一个和最后一个任务的时间
+      if (start_min < first_task_min) first_task_min = start_min
+      if (end_min > last_task_min) last_task_min = end_min
+
+      # 存储任务信息
+      task_count++
+      tasks[task_count,"start"] = start_min
+      tasks[task_count,"end"] = end_min
+      tasks[task_count,"name"] = $2
+    }
+    END {
+      # 覆盖实际任务时间（橙色工作/绿色休息）
+      if (task_count > 0) {
+        for (i = 1; i <= task_count; i++) {
+          task_name = tasks[i,"name"]
+          is_rest = (task_name ~ /休息/ || task_name ~ /Rest/ || task_name ~ /rest/)
+          block_char = is_rest ? "🟩" : "🟧"
+
+          for (m = tasks[i,"start"]; m < tasks[i,"end"]; m += 5) {
+            idx = int(m / 5)
+            if (idx >= 0 && idx < 288) {
+              blocks[idx] = block_char
+            }
+          }
+        }
+      }
+
+      # 输出热力图
+      for (h = 0; h < 24; h++) {
+        printf "| %02d:00 | ", h
+        for (b = 0; b < 12; b++) {
+          idx = h * 12 + b
+          printf "%s", blocks[idx]
+        }
+        print " |"
+      }
+      print ""
+      print "**图例**: 🟧工作 🟩休息 ⬜间隙 ⬛离开"
+    }
+    ' "$TIMER_DATA_FILE"
+
+    echo ""
     echo "---"
     echo ""
+
+    # 分析应用使用情况
+    APP_TRACK_FILE="$TIMER_LOG_DIR/$(date +%Y%m%d)_apptrack.data"
+
+    if [ -f "$APP_TRACK_FILE" ]; then
+      echo "## 🎯 应用使用分析"
+      echo ""
+
+      # 分析：在间隙时间（有屏幕活动但无任务）使用的应用
+      # 改进：区分任务过渡期和真正的分心时间
+      awk -F'|' -v app_file="$APP_TRACK_FILE" -v task_file="$TIMER_DATA_FILE" '
+      BEGIN {
+        TRANSITION_BUFFER = 5  # 任务间过渡缓冲时间（分钟）
+
+        # 读取所有任务时间段
+        task_count = 0
+        while ((getline < task_file) > 0) {
+          split($1, parts, "-")
+          split(parts[1], start_t, ":")
+          split(parts[2], end_t, ":")
+
+          start_min = start_t[1] * 60 + start_t[2]
+          end_min = end_t[1] * 60 + end_t[2]
+
+          task_count++
+          task_end[task_count] = end_min
+
+          # 标记任务时间段
+          for (m = start_min; m < end_min; m++) {
+            has_task[m] = 1
+          }
+
+          # 标记任务结束后的过渡缓冲期
+          for (m = end_min; m < end_min + TRANSITION_BUFFER; m++) {
+            in_transition[m] = 1
+          }
+        }
+        close(task_file)
+
+        # 读取应用使用记录
+        while ((getline < app_file) > 0) {
+          split($1, t, ":")
+          time_min = t[1] * 60 + t[2]
+          app_name = $2
+
+          # 统计总使用次数
+          app_total[app_name]++
+
+          # 分类统计
+          if (has_task[time_min]) {
+            # 在任务时间内
+            app_work[app_name]++
+          } else if (in_transition[time_min]) {
+            # 在任务过渡期（任务结束后5分钟内）
+            app_transition[app_name]++
+          } else {
+            # 真正的间隙时间 - 可能是分心
+            app_distraction[app_name]++
+          }
+        }
+        close(app_file)
+
+        # 输出分析结果
+        print "### 📊 应用使用时段分类"
+        print ""
+        print "| 应用 | 工作中 | 过渡期 | 分心时 | 分心率 |"
+        print "|------|--------|--------|--------|--------|"
+
+        # 遍历所有应用
+        for (app in app_total) {
+          work_count = app_work[app] + 0
+          trans_count = app_transition[app] + 0
+          dist_count = app_distraction[app] + 0
+          total = app_total[app]
+
+          # 计算分心率（分心时间 / 总时间）
+          distraction_rate = (total > 0) ? int((dist_count / total) * 100) : 0
+
+          # 只显示使用过的应用
+          if (total > 0) {
+            printf "| %s | %d | %d | %d | %d%% |\n", app, work_count, trans_count, dist_count, distraction_rate
+          }
+        }
+
+        print ""
+        print "**说明**:"
+        print "- **工作中**: 在记录任务时使用"
+        print "- **过渡期**: 任务结束后" TRANSITION_BUFFER "分钟内使用（切换任务的正常间隔）"
+        print "- **分心时**: 过渡期之后的长时间间隙中使用 ⚠️"
+        print "- **分心率**: 分心时使用次数 / 总使用次数 × 100%"
+        print ""
+
+        # 额外显示高分心率应用
+        print "### ⚠️ 高分心应用（分心率 > 50%）"
+        print ""
+        has_high_distraction = 0
+        for (app in app_total) {
+          dist_count = app_distraction[app] + 0
+          total = app_total[app]
+          distraction_rate = (total > 0) ? int((dist_count / total) * 100) : 0
+
+          if (distraction_rate > 50 && dist_count >= 2) {
+            if (!has_high_distraction) {
+              print "| 应用 | 分心次数 | 分心率 |"
+              print "|------|----------|--------|"
+              has_high_distraction = 1
+            }
+            printf "| %s | %d次 | %d%% |\n", app, dist_count, distraction_rate
+          }
+        }
+
+        if (!has_high_distraction) {
+          print "*暂无高分心应用，做得很好！* ✨"
+        }
+
+        print ""
+      }
+      '
+
+      echo "---"
+      echo ""
+    fi
+
     echo "## 📝 Detailed Log"
     echo ""
     echo "| 时间 | 任务 | 耗时 | 预估 | 状态 |"

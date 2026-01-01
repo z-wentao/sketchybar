@@ -46,6 +46,7 @@ for i in {1..10}; do
     --set space.$i \
       space=$i \
       icon=$i \
+      icon.font="SF Pro:Semibold:15.0" \
       icon.padding_left=0 \
       icon.padding_right=0 \
       padding_left=10 \
@@ -59,9 +60,9 @@ done
 
 # 将工作区 10 的图标改为 Things 图标（使用勾选标记）
   # icon=􀃲 \
-sketchybar --set space.10 \
-  icon=Schedule \
-  icon.font="SF Pro:Bold:20.0"
+# sketchybar --set space.10 \
+#   icon=Schedule \
+#   icon.font="SF Pro:Bold:20.0"
 
 # 订阅空间变化事件
 sketchybar --add event space_change
@@ -85,7 +86,7 @@ sketchybar --add item things_task center \
     click_script="$HOME/.config/sketchybar/plugins/things_click.sh" \
     right_click_script="$HOME/.config/sketchybar/plugins/things_click.sh --menu" \
     label="Loading..." \
-    label.font="SF Pro:Semibold:14.0" \
+    label.font="SF Pro:Semibold:15.0" \
     label.color=0xffcad3f5 \
     background.drawing=off \
     padding_left=12 \
@@ -99,6 +100,8 @@ sketchybar --add item things_task center \
 sketchybar --add item calendar right \
   --set calendar \
     update_freq=1 \
+    icon.font="SF Pro:Semibold:15.0" \
+    label.font="SF Pro:Semibold:15.0" \
     script="$HOME/.config/sketchybar/plugins/calendar.sh" \
     click_script="open -a Calendar"
 
@@ -106,13 +109,15 @@ sketchybar --add item calendar right \
 sketchybar --add item battery right \
   --set battery \
     update_freq=60 \
+    icon.font="SF Pro:Semibold:15.0" \
+    label.font="SF Pro:Semibold:15.0" \
     script="$HOME/.config/sketchybar/plugins/battery.sh"
 
 # Things3 应用快捷方式
 sketchybar --add item things right \
   --set things \
     icon=􀃲 \
-    icon.font="SF Pro:Bold:20.0" \
+    icon.font="SF Pro:Semibold:15.0" \
     icon.color=0xff3a7eeb \
     label.drawing=off \
     click_script="yabai -m space --focus 10 && open -a Things3"
@@ -122,8 +127,9 @@ sketchybar --add event input_source_update
 sketchybar --add item input_source right \
   --set input_source \
     icon=􀇳 \
+    icon.font="SF Pro:Semibold:15.0" \
     icon.color=$WHITE \
-    label.font="SF Pro:Bold:13.0" \
+    label.font="SF Pro:Semibold:15.0" \
     label.color=$WHITE \
     label.padding_left=5 \
     label.padding_right=5 \
