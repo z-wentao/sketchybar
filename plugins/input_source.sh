@@ -6,7 +6,7 @@ LOGCG_CHECK=$(defaults read ~/Library/Preferences/com.apple.HIToolbox.plist Appl
 
 if [ -n "$LOGCG_CHECK" ]; then
     # 当前是落格输入法
-    DISPLAY="双拼/En"
+    DISPLAY="双拼"
 else
     # 当前是ABC或其他输入法
     DISPLAY="EN"

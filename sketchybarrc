@@ -58,8 +58,9 @@ for i in {1..10}; do
 done
 
 # 将工作区 10 的图标改为 Things 图标（使用勾选标记）
+  # icon=􀃲 \
 sketchybar --set space.10 \
-  icon=􀃲 \
+  icon=Schedule \
   icon.font="SF Pro:Bold:20.0"
 
 # 订阅空间变化事件
@@ -71,6 +72,25 @@ for i in {1..10}; do
 done
 
 source "$HOME/.config/sketchybar/items/front_app.sh"
+
+# ===== 中间项目 =====
+
+# Things 任务显示（居中）
+sketchybar --add event things_update
+
+sketchybar --add item things_task center \
+  --set things_task \
+    update_freq=1 \
+    script="$HOME/.config/sketchybar/plugins/things_task.sh" \
+    click_script="$HOME/.config/sketchybar/plugins/things_click.sh" \
+    right_click_script="$HOME/.config/sketchybar/plugins/things_click.sh --menu" \
+    label="Loading..." \
+    label.font="SF Pro:Semibold:14.0" \
+    label.color=0xffcad3f5 \
+    background.drawing=off \
+    padding_left=12 \
+    padding_right=12 \
+  --subscribe things_task things_update
 
 # ===== 右侧项目 =====
 
@@ -108,7 +128,6 @@ sketchybar --add item input_source right \
     label.padding_left=5 \
     label.padding_right=5 \
     width=50 \
-    update_freq=1 \
     script="$HOME/.config/sketchybar/plugins/input_source.sh" \
     click_script="$HOME/.config/sketchybar/plugins/input_source_toggle.sh" \
   --subscribe input_source system_woke input_source_update
@@ -117,6 +136,8 @@ sketchybar --add item input_source right \
 # 初始化更新
 sketchybar --update
 
+# 启动输入法监听器（替代轮询）
+"$HOME/.config/sketchybar/plugins/input_source_listener.sh" &
 
 # 定义插件目录变量
 # export PLUGIN_DIR="$HOME/.config/sketchybar/plugins"
