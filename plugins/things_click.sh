@@ -6,7 +6,7 @@ TIMER_LOG_DIR="$HOME/Library/Mobile Documents/27N4MQEA55~pro~writer/Documents/no
 TIMER_LOG_FILE="$TIMER_LOG_DIR/$(date +%Y%m%d)_timetrack.txt"
 TIMER_DATA_FILE="$TIMER_LOG_DIR/$(date +%Y%m%d)_timetrack.data"
 FOCUS_TIME_FILE="/tmp/parkinson_focus_time"
-BREAK_THRESHOLD=3000  # 50分钟（秒）
+BREAK_THRESHOLD=5400  # 90分钟 = 5400秒
 
 # 确保日志目录存在
 mkdir -p "$TIMER_LOG_DIR"
@@ -129,7 +129,7 @@ generate_markdown_report() {
     echo "| 时间 | 活动分布 (每格=5min) |"
     echo "|------|---------------------|"
 
-    # 生成24小时热力图
+    # 生成24小时热力图（整合空闲检测）
     # 先获取当前时间（分钟数）
     CURRENT_MIN=$(date +%H:%M | awk -F: '{print $1 * 60 + $2}')
 
@@ -142,12 +142,37 @@ generate_markdown_report() {
       else if ($0 ~ /turned off/) printf "%d:OFF ", min
     }')
 
-    # 将屏幕活动时段信息传递给AWK
+    # 获取应用追踪数据文件路径
+    APP_TRACK_FILE="$TIMER_LOG_DIR/$(date +%Y%m%d)_apptrack.data"
+
+    # 将屏幕活动时段信息和空闲数据传递给AWK
     # 格式：空格分隔的 "分钟数:ON" 或 "分钟数:OFF"
-    awk -F'|' -v current_min="$CURRENT_MIN" -v display_events="$DISPLAY_EVENTS" '
+    awk -F'|' -v current_min="$CURRENT_MIN" -v display_events="$DISPLAY_EVENTS" -v app_file="$APP_TRACK_FILE" '
     BEGIN {
       # 获取当前时间
       curr_min = current_min + 0
+
+      # 读取应用追踪数据，标记空闲时间
+      # 格式：HH:MM|应用名或IDLE|空闲秒数
+      while ((getline line < app_file) > 0) {
+        n_fields = split(line, fields, "|")
+        if (n_fields >= 2) {
+          split(fields[1], t, ":")
+          time_min = t[1] * 60 + t[2]
+          app_or_status = fields[2]
+          idle_seconds = (n_fields >= 3) ? (fields[3] + 0) : 0
+
+          # 如果是IDLE或空闲超过5分钟（300秒），标记为空闲
+          if (app_or_status == "IDLE" || idle_seconds >= 300) {
+            # 标记对应的5分钟块为空闲
+            block_idx = int(time_min / 5)
+            if (block_idx >= 0 && block_idx < 288) {
+              is_idle[block_idx] = 1
+            }
+          }
+        }
+      }
+      close(app_file)
 
       # 解析屏幕事件，建立活动时段
       n_events = split(display_events, events, " ")
@@ -177,15 +202,18 @@ generate_markdown_report() {
         }
       }
 
-      # 初始化所有时间块
+      # 初始化所有时间块（整合空闲检测）
       for (i = 0; i < 288; i++) {
         time_min = i * 5
 
         # 未来时间标记为间隙
         if (time_min > curr_min) {
           blocks[i] = "⬜"
+        } else if (is_idle[i] == 1) {
+          # 检测到空闲（5分钟无操作）- 标记为离开
+          blocks[i] = "⬛"
         } else if (display_status[i] == 1) {
-          # 过去时间，如果屏幕开着，标记为间隙（有活动）
+          # 过去时间，屏幕开且有活动，标记为间隙
           blocks[i] = "⬜"
         } else {
           # 过去时间，屏幕关着，标记为离开
@@ -720,6 +748,16 @@ END
 
       # 清除计时器状态
       rm -f "$TIMER_STATE_FILE"
+
+      # ===== 记录休息时间到timetrack.data =====
+      local start_time_str=$(date -r $START_TIME +"%H:%M")
+      local end_time_str=$(date +"%H:%M")
+      local time_range="$start_time_str-$end_time_str"
+      local est_min=${ESTIMATED_MINUTES:-0}
+
+      # 调用 update_timetrack_file 记录休息
+      update_timetrack_file "$time_range" "休息" "$mins" "$est_min" "✓"
+      # =========================================
 
       # 显示休息结束通知
       osascript -e "display notification \"休息结束，准备好继续工作了吗？\" with title \"💪 休息完成\""
