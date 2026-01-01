@@ -248,7 +248,8 @@ generate_markdown_report() {
       if (task_count > 0) {
         for (i = 1; i <= task_count; i++) {
           task_name = tasks[i,"name"]
-          is_rest = (task_name ~ /休息/ || task_name ~ /Rest/ || task_name ~ /rest/)
+          # 只有完全匹配"休息"或以"休息"开头时才算休息（避免误判如"休息时间不能够及时的渲染"）
+          is_rest = (task_name == "休息" || task_name == "Rest" || task_name == "rest" || task_name ~ /^休息[0-9 　]/ || task_name ~ /^Rest[0-9 ]/ || task_name ~ /^rest[0-9 ]/)
           block_char = is_rest ? "🟩" : "🟧"
 
           for (m = tasks[i,"start"]; m < tasks[i,"end"]; m += 5) {
