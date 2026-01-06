@@ -637,8 +637,8 @@ handle_complete() {
   # 播放提示音
   afplay /System/Library/Sounds/Glass.aiff &
 
-  # 检查是否需要休息提醒
-  check_break_reminder "$elapsed"
+  # 检查是否需要休息提醒（已禁用）
+  # check_break_reminder "$elapsed"
 
   # 刷新显示（获取下一个任务）
   sketchybar --trigger things_update

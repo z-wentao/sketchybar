@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>专注训练</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: #888;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* ===== 主菜单 ===== */
+        .menu-screen {
+            text-align: center;
+        }
+
+        .menu-screen h1 {
+            font-size: 28px;
+            font-weight: 300;
+            color: #ccc;
+            margin-bottom: 50px;
+        }
+
+        .mode-cards {
+            display: flex;
+            gap: 30px;
+        }
+
+        .mode-card {
+            background: transparent;
+            border: 1px solid #222;
+            border-radius: 8px;
+            padding: 40px 36px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 220px;
+            text-align: center;
+        }
+
+        .mode-card:hover {
+            border-color: #444;
+            transform: translateY(-2px);
+        }
+
+        .mode-card h2 {
+            font-size: 18px;
+            font-weight: 400;
+            color: #aaa;
+            margin-bottom: 12px;
+        }
+
+        .mode-card p {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.7;
+        }
+
+        .mode-card .duration {
+            margin-top: 16px;
+            font-size: 12px;
+            color: #444;
+        }
+
+        /* ===== 通用控件 ===== */
+        .hidden {
+            display: none !important;
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid #333;
+            color: #555;
+            padding: 10px 24px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 4px;
+        }
+
+        .btn:hover {
+            border-color: #555;
+            color: #888;
+        }
+
+        .btn.primary {
+            border-color: #444;
+            color: #777;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            background: transparent;
+            border: none;
+            color: #444;
+            font-size: 14px;
+            cursor: pointer;
+            transition: color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .back-btn:hover {
+            color: #888;
+        }
+
+        /* ===== Focus Point 模式 ===== */
+        .focus-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100vh;
+        }
+
+        .focus-point {
+            width: 12px;
+            height: 12px;
+            background: #e8e8e8;
+            border-radius: 50%;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .focus-point.active {
+            box-shadow: 0 0 20px 5px rgba(232, 232, 232, 0.3);
+        }
+
+        .focus-timer {
+            position: fixed;
+            bottom: 40px;
+            font-size: 48px;
+            font-weight: 200;
+            color: #333;
+            letter-spacing: 2px;
+            transition: opacity 0.5s ease;
+        }
+
+        .focus-timer.dimmed {
+            opacity: 0.3;
+        }
+
+        .focus-controls {
+            position: fixed;
+            bottom: 120px;
+            display: flex;
+            gap: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .focus-screen.show-ui .focus-controls {
+            opacity: 1;
+        }
+
+        .focus-screen.show-ui {
+            cursor: default;
+        }
+
+        .focus-screen:not(.show-ui) {
+            cursor: none;
+        }
+
+        .focus-duration-select {
+            position: fixed;
+            bottom: 180px;
+            display: flex;
+            gap: 12px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .focus-screen.show-ui .focus-duration-select {
+            opacity: 1;
+        }
+
+        .duration-btn {
+            background: transparent;
+            border: 1px solid #2a2a2a;
+            color: #444;
+            padding: 6px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 3px;
+        }
+
+        .duration-btn:hover {
+            border-color: #444;
+        }
+
+        .duration-btn.selected {
+            border-color: #555;
+            color: #777;
+        }
+
+        .focus-instructions {
+            position: fixed;
+            top: 40px;
+            text-align: center;
+            font-size: 14px;
+            color: #444;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            line-height: 1.8;
+        }
+
+        .focus-screen.show-ui .focus-instructions {
+            opacity: 1;
+        }
+
+        /* ===== Space-Time Bridging 模式 ===== */
+        .stb-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100vh;
+        }
+
+        .visual-guide {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .breath-ring {
+            position: absolute;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transition: all 0.5s ease;
+        }
+
+        .breath-ring.animating {
+            animation: breathe 8s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(0.8); opacity: 0.3; }
+            50% { transform: scale(1.2); opacity: 0.6; }
+        }
+
+        .center-point {
+            width: 8px;
+            height: 8px;
+            background: #e8e8e8;
+            border-radius: 50%;
+            z-index: 10;
+        }
+
+        .stage-indicator {
+            position: fixed;
+            top: 60px;
+            text-align: center;
+        }
+
+        .stage-title {
+            font-size: 24px;
+            font-weight: 300;
+            color: #ccc;
+            margin-bottom: 12px;
+        }
+
+        .stage-instruction {
+            font-size: 15px;
+            color: #666;
+            line-height: 1.8;
+            max-width: 400px;
+        }
+
+        .breath-progress {
+            position: fixed;
+            bottom: 120px;
+            width: 200px;
+            height: 2px;
+            background: #222;
+            border-radius: 1px;
+            overflow: hidden;
+        }
+
+        .breath-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: #555;
+            transition: width 24s linear;
+        }
+
+        .breath-progress-bar.animating {
+            width: 100%;
+        }
+
+        .stage-progress {
+            position: fixed;
+            bottom: 160px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .stage-dot {
+            width: 6px;
+            height: 6px;
+            background: #222;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .stage-dot.active {
+            background: #666;
+            width: 20px;
+            border-radius: 3px;
+        }
+
+        .stage-dot.completed {
+            background: #444;
+        }
+
+        .stb-controls {
+            position: fixed;
+            bottom: 50px;
+        }
+
+        .visual-guide[data-stage="0"] .breath-ring { width: 60px; height: 60px; }
+        .visual-guide[data-stage="1"] .breath-ring { width: 100px; height: 100px; }
+        .visual-guide[data-stage="2"] .breath-ring { width: 160px; height: 160px; }
+        .visual-guide[data-stage="3"] .breath-ring { width: 280px; height: 280px; }
+        .visual-guide[data-stage="4"] .breath-ring { width: 60px; height: 60px; }
+
+        .eyes-closed-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #050505;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease;
+            z-index: 100;
+        }
+
+        .eyes-closed-overlay.active {
+            opacity: 1;
+        }
+
+        .eyes-closed-text {
+            font-size: 18px;
+            color: #333;
+            text-align: center;
+            line-height: 2;
+        }
+
+        /* ===== 设置面板（STB） ===== */
+        .stb-setup {
+            text-align: center;
+        }
+
+        .stb-setup h2 {
+            font-size: 24px;
+            font-weight: 300;
+            color: #ccc;
+            margin-bottom: 16px;
+        }
+
+        .stb-setup p {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 30px;
+            line-height: 1.8;
+        }
+
+        .cycle-select {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .cycle-btn {
+            background: transparent;
+            border: 1px solid #2a2a2a;
+            color: #444;
+            padding: 8px 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 3px;
+        }
+
+        .cycle-btn:hover {
+            border-color: #444;
+        }
+
+        .cycle-btn.selected {
+            border-color: #555;
+            color: #777;
+        }
+
+        /* ===== 完成界面 ===== */
+        .complete-screen {
+            text-align: center;
+        }
+
+        .complete-screen h2 {
+            font-size: 28px;
+            font-weight: 300;
+            color: #ccc;
+            margin-bottom: 16px;
+        }
+
+        .complete-screen p {
+            font-size: 15px;
+            color: #555;
+            margin-bottom: 40px;
+        }
+
+        .complete-actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- 主菜单 -->
+    <div class="menu-screen" id="menuScreen">
+        <h1>专注训练</h1>
+        <div class="mode-cards">
+            <div class="mode-card" id="focusCard">
+                <h2>视觉聚焦</h2>
+                <p>凝视中心点<br>激活前额叶<br>进入专注状态</p>
+                <div class="duration">30-90 秒</div>
+            </div>
+            <div class="mode-card" id="stbCard">
+                <h2>时空桥接</h2>
+                <p>内外感受切换<br>调整时间感知<br>连接目标层级</p>
+                <div class="duration">2-4 分钟</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Focus Point 模式 -->
+    <div class="focus-screen hidden show-ui" id="focusScreen">
+        <button class="back-btn" id="focusBackBtn">← 返回</button>
+
+        <div class="focus-instructions">
+            凝视中心圆点<br>
+            保持眼睛聚焦，不要四处看
+        </div>
+
+        <div class="focus-point" id="focusPoint"></div>
+
+        <div class="focus-duration-select">
+            <button class="duration-btn" data-duration="30">30秒</button>
+            <button class="duration-btn selected" data-duration="60">60秒</button>
+            <button class="duration-btn" data-duration="90">90秒</button>
+        </div>
+
+        <div class="focus-controls">
+            <button class="btn primary" id="focusStartBtn">开始</button>
+        </div>
+
+        <div class="focus-timer" id="focusTimer">1:00</div>
+    </div>
+
+    <!-- Space-Time Bridging 设置 -->
+    <div class="stb-setup hidden" id="stbSetup">
+        <button class="back-btn" id="stbSetupBackBtn">← 返回</button>
+
+        <h2>时空桥接</h2>
+        <p>通过视觉焦点的转移<br>在内感受与外感受之间流动</p>
+
+        <div class="cycle-select">
+            <button class="cycle-btn" data-cycles="1">1 循环</button>
+            <button class="cycle-btn selected" data-cycles="2">2 循环</button>
+            <button class="cycle-btn" data-cycles="3">3 循环</button>
+        </div>
+
+        <button class="btn primary" id="stbStartBtn">开始练习</button>
+    </div>
+
+    <!-- Space-Time Bridging 练习 -->
+    <div class="stb-screen hidden" id="stbScreen">
+        <div class="stage-indicator">
+            <div class="stage-title" id="stageTitle">闭眼・内观</div>
+            <div class="stage-instruction" id="stageInstruction">
+                闭上眼睛<br>感受呼吸、心跳、身体的存在
+            </div>
+        </div>
+
+        <div class="visual-guide" id="visualGuide" data-stage="0">
+            <div class="breath-ring animating"></div>
+            <div class="center-point"></div>
+        </div>
+
+        <div class="stage-progress">
+            <div class="stage-dot active" data-stage="0"></div>
+            <div class="stage-dot" data-stage="1"></div>
+            <div class="stage-dot" data-stage="2"></div>
+            <div class="stage-dot" data-stage="3"></div>
+            <div class="stage-dot" data-stage="4"></div>
+        </div>
+
+        <div class="breath-progress">
+            <div class="breath-progress-bar" id="breathProgressBar"></div>
+        </div>
+
+        <div class="stb-controls">
+            <button class="btn" id="stbExitBtn">退出</button>
+        </div>
+
+        <div class="eyes-closed-overlay" id="eyesClosedOverlay">
+            <div class="eyes-closed-text">闭上眼睛<br>向内感受</div>
+        </div>
+    </div>
+
+    <!-- 完成界面 -->
+    <div class="complete-screen hidden" id="completeScreen">
+        <h2 id="completeTitle">练习完成</h2>
+        <p id="completeText">准备好进入专注状态</p>
+        <div class="complete-actions">
+            <button class="btn" id="backToMenuBtn">返回菜单</button>
+            <button class="btn primary" id="repeatBtn">再来一次</button>
+        </div>
+    </div>
+
+    <script>
+        // ===== 音频系统 =====
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+            }
+        }
+
+        function playStageSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.2);
+            osc.start(audioCtx.currentTime);
+            osc.stop(audioCtx.currentTime + 1.2);
+        }
+
+        function playCompleteSound() {
+            if (!audioCtx) return;
+            const frequencies = [523.25, 659.25, 783.99];
+            frequencies.forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                osc.type = 'sine';
+                const startTime = audioCtx.currentTime + i * 0.1;
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(0.2, startTime + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + 2);
+                osc.start(startTime);
+                osc.stop(startTime + 2);
+            });
+        }
+
+        // ===== DOM 元素 =====
+        const menuScreen = document.getElementById('menuScreen');
+        const focusScreen = document.getElementById('focusScreen');
+        const stbSetup = document.getElementById('stbSetup');
+        const stbScreen = document.getElementById('stbScreen');
+        const completeScreen = document.getElementById('completeScreen');
+
+        // Focus Point 元素
+        const focusCard = document.getElementById('focusCard');
+        const focusBackBtn = document.getElementById('focusBackBtn');
+        const focusPoint = document.getElementById('focusPoint');
+        const focusTimer = document.getElementById('focusTimer');
+        const focusStartBtn = document.getElementById('focusStartBtn');
+        const focusDurationBtns = document.querySelectorAll('.focus-duration-select .duration-btn');
+
+        // STB 元素
+        const stbCard = document.getElementById('stbCard');
+        const stbSetupBackBtn = document.getElementById('stbSetupBackBtn');
+        const stbStartBtn = document.getElementById('stbStartBtn');
+        const stbExitBtn = document.getElementById('stbExitBtn');
+        const cycleBtns = document.querySelectorAll('.cycle-btn');
+        const stageTitle = document.getElementById('stageTitle');
+        const stageInstruction = document.getElementById('stageInstruction');
+        const visualGuide = document.getElementById('visualGuide');
+        const breathProgressBar = document.getElementById('breathProgressBar');
+        const eyesClosedOverlay = document.getElementById('eyesClosedOverlay');
+        const stageDots = document.querySelectorAll('.stage-dot');
+
+        // 完成界面元素
+        const completeTitle = document.getElementById('completeTitle');
+        const completeText = document.getElementById('completeText');
+        const backToMenuBtn = document.getElementById('backToMenuBtn');
+        const repeatBtn = document.getElementById('repeatBtn');
+
+        // ===== 状态 =====
+        let currentMode = null; // 'focus' or 'stb'
+
+        // Focus Point 状态
+        let focusDuration = 60;
+        let focusTimeLeft = 60;
+        let focusIntervalId = null;
+        let focusIsRunning = false;
+        let focusHideTimeout = null;
+
+        // STB 状态
+        const stages = [
+            { id: 0, title: '闭眼・内观', instruction: '闭上眼睛\n感受呼吸、心跳、身体的存在', eyesClosed: true },
+            { id: 1, title: '手掌・近处', instruction: '睁开眼睛，看着你的手掌\n一半注意力在手，一半在呼吸', eyesClosed: false },
+            { id: 2, title: '中距离', instruction: '看向几米外的某个点\n大部分注意力外放，保留一点内感受', eyesClosed: false },
+            { id: 3, title: '远方・地平线', instruction: '看向最远处，扩大视野\n不聚焦特定点，感受整个视觉场', eyesClosed: false },
+            { id: 4, title: '回归・内观', instruction: '闭上眼睛\n回到内在，感受身体', eyesClosed: true }
+        ];
+        let stbCurrentStage = 0;
+        let stbCurrentBreath = 0;
+        let stbCurrentCycle = 0;
+        let stbTotalCycles = 2;
+        let stbBreathTimer = null;
+        let stbIsRunning = false;
+
+        // ===== 导航 =====
+        function showScreen(screen) {
+            [menuScreen, focusScreen, stbSetup, stbScreen, completeScreen].forEach(s => s.classList.add('hidden'));
+            screen.classList.remove('hidden');
+        }
+
+        focusCard.addEventListener('click', () => {
+            currentMode = 'focus';
+            showScreen(focusScreen);
+        });
+
+        stbCard.addEventListener('click', () => {
+            currentMode = 'stb';
+            showScreen(stbSetup);
+        });
+
+        focusBackBtn.addEventListener('click', () => {
+            focusReset();
+            showScreen(menuScreen);
+        });
+
+        stbSetupBackBtn.addEventListener('click', () => showScreen(menuScreen));
+
+        stbExitBtn.addEventListener('click', () => {
+            stbExit();
+            showScreen(menuScreen);
+        });
+
+        backToMenuBtn.addEventListener('click', () => showScreen(menuScreen));
+
+        repeatBtn.addEventListener('click', () => {
+            if (currentMode === 'focus') {
+                focusReset();
+                showScreen(focusScreen);
+            } else {
+                stbReset();
+                showScreen(stbSetup);
+            }
+        });
+
+        // ===== Focus Point 逻辑 =====
+        function focusFormatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function focusUpdateDisplay() {
+            focusTimer.textContent = focusFormatTime(focusTimeLeft);
+        }
+
+        function focusStart() {
+            if (focusIsRunning) {
+                focusPause();
+                return;
+            }
+            initAudio();
+            focusIsRunning = true;
+            focusStartBtn.textContent = '暂停';
+            focusPoint.classList.add('active');
+
+            focusHideTimeout = setTimeout(() => {
+                focusScreen.classList.remove('show-ui');
+                focusTimer.classList.add('dimmed');
+            }, 2000);
+
+            focusIntervalId = setInterval(() => {
+                focusTimeLeft--;
+                focusUpdateDisplay();
+                if (focusTimeLeft <= 0) {
+                    focusComplete();
+                }
+            }, 1000);
+        }
+
+        function focusPause() {
+            focusIsRunning = false;
+            focusStartBtn.textContent = '继续';
+            clearInterval(focusIntervalId);
+            clearTimeout(focusHideTimeout);
+            focusScreen.classList.add('show-ui');
+            focusTimer.classList.remove('dimmed');
+        }
+
+        function focusReset() {
+            focusIsRunning = false;
+            focusTimeLeft = focusDuration;
+            focusStartBtn.textContent = '开始';
+            focusPoint.classList.remove('active');
+            clearInterval(focusIntervalId);
+            clearTimeout(focusHideTimeout);
+            focusScreen.classList.add('show-ui');
+            focusTimer.classList.remove('dimmed');
+            focusUpdateDisplay();
+        }
+
+        function focusComplete() {
+            clearInterval(focusIntervalId);
+            focusIsRunning = false;
+            focusPoint.classList.remove('active');
+            focusScreen.classList.add('show-ui');
+            focusTimer.classList.remove('dimmed');
+            playCompleteSound();
+
+            completeTitle.textContent = '专注准备完成';
+            completeText.textContent = '你已准备好进入深度工作状态';
+            showScreen(completeScreen);
+
+            focusTimeLeft = focusDuration;
+            focusStartBtn.textContent = '开始';
+            focusUpdateDisplay();
+        }
+
+        focusStartBtn.addEventListener('click', focusStart);
+
+        focusDurationBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!focusIsRunning) {
+                    focusDurationBtns.forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    focusDuration = parseInt(btn.dataset.duration);
+                    focusTimeLeft = focusDuration;
+                    focusUpdateDisplay();
+                }
+            });
+        });
+
+        focusScreen.addEventListener('mousemove', () => {
+            if (focusIsRunning) {
+                focusScreen.classList.add('show-ui');
+                focusTimer.classList.remove('dimmed');
+                clearTimeout(focusHideTimeout);
+                focusHideTimeout = setTimeout(() => {
+                    if (focusIsRunning) {
+                        focusScreen.classList.remove('show-ui');
+                        focusTimer.classList.add('dimmed');
+                    }
+                }, 2000);
+            }
+        });
+
+        // ===== STB 逻辑 =====
+        cycleBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                cycleBtns.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                stbTotalCycles = parseInt(btn.dataset.cycles);
+            });
+        });
+
+        stbStartBtn.addEventListener('click', stbStart);
+
+        function stbStart() {
+            initAudio();
+            stbCurrentStage = 0;
+            stbCurrentBreath = 0;
+            stbCurrentCycle = 0;
+            stbIsRunning = true;
+            showScreen(stbScreen);
+            stbUpdateDisplay();
+            playStageSound();
+            stbStartBreathCycle();
+        }
+
+        function stbUpdateDisplay() {
+            const stage = stages[stbCurrentStage];
+            stageTitle.textContent = stage.title;
+            stageInstruction.innerHTML = stage.instruction.replace(/\n/g, '<br>');
+            visualGuide.dataset.stage = stbCurrentStage;
+
+            stageDots.forEach((dot, i) => {
+                dot.classList.remove('active', 'completed');
+                if (i < stbCurrentStage) dot.classList.add('completed');
+                else if (i === stbCurrentStage) dot.classList.add('active');
+            });
+
+            if (stage.eyesClosed) {
+                eyesClosedOverlay.classList.add('active');
+            } else {
+                eyesClosedOverlay.classList.remove('active');
+            }
+        }
+
+        function stbStartProgressBar() {
+            breathProgressBar.classList.remove('animating');
+            breathProgressBar.style.width = '0%';
+            void breathProgressBar.offsetWidth;
+            breathProgressBar.classList.add('animating');
+        }
+
+        function stbStartBreathCycle() {
+            if (!stbIsRunning) return;
+
+            if (stbCurrentBreath === 0) {
+                stbStartProgressBar();
+            }
+
+            stbBreathTimer = setTimeout(() => {
+                if (!stbIsRunning) return;
+
+                stbCurrentBreath++;
+
+                if (stbCurrentBreath >= 3) {
+                    stbCurrentBreath = 0;
+                    stbCurrentStage++;
+                    playStageSound();
+
+                    if (stbCurrentStage >= stages.length) {
+                        stbCurrentStage = 0;
+                        stbCurrentCycle++;
+
+                        if (stbCurrentCycle >= stbTotalCycles) {
+                            stbComplete();
+                            return;
+                        }
+                    }
+                    stbUpdateDisplay();
+                }
+
+                stbStartBreathCycle();
+            }, 8000);
+        }
+
+        function stbComplete() {
+            stbIsRunning = false;
+            eyesClosedOverlay.classList.remove('active');
+            playCompleteSound();
+
+            completeTitle.textContent = '时空桥接完成';
+            completeText.textContent = '认知视角已校准';
+            showScreen(completeScreen);
+        }
+
+        function stbExit() {
+            stbIsRunning = false;
+            clearTimeout(stbBreathTimer);
+            eyesClosedOverlay.classList.remove('active');
+        }
+
+        function stbReset() {
+            stbCurrentStage = 0;
+            stbCurrentBreath = 0;
+            stbCurrentCycle = 0;
+            stbIsRunning = false;
+            clearTimeout(stbBreathTimer);
+            eyesClosedOverlay.classList.remove('active');
+        }
+
+        // ===== 键盘控制 =====
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (!focusScreen.classList.contains('hidden')) {
+                    focusStart();
+                }
+            } else if (e.code === 'Escape') {
+                if (!focusScreen.classList.contains('hidden')) {
+                    focusReset();
+                    showScreen(menuScreen);
+                } else if (!stbScreen.classList.contains('hidden')) {
+                    stbExit();
+                    showScreen(menuScreen);
+                } else if (!completeScreen.classList.contains('hidden')) {
+                    showScreen(menuScreen);
+                }
+            }
+        });
+
+        // 初始化
+        focusUpdateDisplay();
+    </script>
+</body>
+</html>

@@ -122,6 +122,12 @@ sketchybar --add item things right \
     label.drawing=off \
     click_script="yabai -m space --focus 10 && open -a Things3"
 
+# Focus Training
+sketchybar --add item focus_training right \
+  --set focus_training \
+    icon=󰂵 \
+    click_script="yabai -m space --focus 3 && open -a Safari $HOME/.config/sketchybar/focus-training.html"
+
 # 输入法指示器
 sketchybar --add event input_source_update
 sketchybar --add item input_source right \
